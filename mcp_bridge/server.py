@@ -1,8 +1,9 @@
+from typing import Any, Dict, List, Optional
+import os
+
+import httpx
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field
-import httpx
-import os
-from typing import Any, Dict, List
 
 
 API_BASE_URL = os.getenv("CRAWLER_API_BASE_URL", "http://127.0.0.1:8080").rstrip("/")
@@ -54,14 +55,16 @@ async def health() -> Dict[str, Any]:
 
 
 @mcp.tool
-async def fetch(url: str, options: CrawlOptions = CrawlOptions()) -> Dict[str, Any]:
+async def fetch(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, Any]:
     """Fetch a URL through the remote crawler API."""
+    options = options or CrawlOptions()
     return await _post("/fetch", {"url": url, "options": options.model_dump()})
 
 
 @mcp.tool
-async def parse(url: str, options: CrawlOptions = CrawlOptions()) -> Dict[str, Any]:
+async def parse(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, Any]:
     """Fetch and parse a URL through the remote crawler API."""
+    options = options or CrawlOptions()
     return await _post("/parse", {"url": url, "options": options.model_dump()})
 
 
