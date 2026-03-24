@@ -1,6 +1,6 @@
 # 🕷️ Stealth Crawler
 
-一个可维护的 Python 爬虫实例，支持同步 / 异步请求、代理池、robots 感知、HTML 解析与统一结果封装。
+一个可维护的 Python 爬虫实例，支持同步 / 异步请求、代理池、robots 感知、HTML 解析、CLI、HTTP API 和 MCP Bridge。
 
 ## 特性
 
@@ -11,18 +11,19 @@
 - HTML 标题、链接、Meta 提取
 - 标准日志系统
 - CLI 与 HTTP API
-- 可容器化、可云端部署
+- API Key 鉴权 + 速率限制
+- 可容器化、可云端部署、可通过 MCP 调用
 
 ## 安装
 
 ```bash
-pip install -e .
+pip install -e ".[api,stealth,mcp]"
 ```
 
-如果你要启用 HTTP API / Docker 运行所需依赖：
+如果你只想使用基础库：
 
 ```bash
-pip install -e ".[api,stealth]"
+pip install -e .
 ```
 
 ## 快速开始
@@ -54,59 +55,74 @@ asyncio.run(main())
 
 ## CLI
 
-安装后可直接使用：
-
 ```bash
 stealth-crawler fetch https://httpbin.org/html
 stealth-crawler analyze https://example.com --robots-mode warn
 stealth-crawler parse https://httpbin.org/html --json
+stealth-crawler serve --host 0.0.0.0 --port 8080
 ```
 
 ## HTTP API
 
-启动服务：
+### 认证
+
+如果设置了 `CRAWLER_API_KEY`，请求需要携带：
 
 ```bash
-uvicorn stealth_crawler.http_api:app --host 0.0.0.0 --port 8080
+X-API-Key: <your-key>
+# 或
+Authorization: Bearer <your-key>
 ```
 
-接口：
+### 速率限制
+
+默认使用内存版限流：
+- `CRAWLER_RATE_LIMIT_REQUESTS=60`
+- `CRAWLER_RATE_LIMIT_WINDOW=60`
+
+### 接口
 
 - `GET /health`
 - `POST /fetch`
 - `POST /parse`
 - `POST /analyze`
 
-部署与 MCP 方案见：`docs/DEPLOYMENT.md`
-
-## Docker
-
-构建镜像：
+## Docker / Compose
 
 ```bash
 docker build -t stealth-crawler:latest .
+docker compose up --build
 ```
 
-运行：
+Compose 会启动：
+- `api`：爬虫 HTTP API
+- `mcp-bridge`：MCP Bridge（可选 HTTP 模式）
+
+## 云端部署 + MCP 调用
+
+推荐方案：
+
+1. **API 容器**部署到云端
+2. **MCP Bridge** 连接到云端 API
+3. MCP 客户端只和 Bridge 交互
+
+### Bridge 环境变量
+
+- `CRAWLER_API_BASE_URL`
+- `CRAWLER_API_KEY`
+- `MCP_TRANSPORT=stdio|http`
+- `MCP_HOST`
+- `MCP_PORT`
+
+### 示例
 
 ```bash
-docker run --rm -p 8080:8080 stealth-crawler:latest
+# 本地启动 MCP Bridge（stdio）
+python -m mcp_bridge.server
+
+# 启动 HTTP 模式 MCP Bridge
+MCP_TRANSPORT=http MCP_PORT=8001 python -m mcp_bridge.server
 ```
-
-## 云端部署 + MCP 调用的可行性
-
-可以，推荐架构是：
-
-1. **Docker 容器**中运行本仓库的 HTTP API
-2. **部署到云端**（Cloud Run / ECS / Fly.io / Kubernetes 都可）
-3. 再单独做一个 **MCP Bridge**，把 MCP 工具调用转成 HTTP 请求，代理到这个服务
-
-这样做的好处：
-- MCP 端只负责工具编排
-- 爬虫逻辑只在云端容器内维护
-- 后续可以横向扩容、加鉴权、加限流
-
-如果你要，我可以下一步直接补一个 `mcp_bridge` 方案文件。
 
 ## 目录结构
 
@@ -117,6 +133,7 @@ stealth-crawler/
 │   ├── __main__.py
 │   ├── cli.py
 │   ├── http_api.py
+│   ├── security.py
 │   ├── config.py
 │   ├── exceptions.py
 │   ├── logger.py
@@ -126,13 +143,19 @@ stealth-crawler/
 │   ├── parser.py
 │   ├── crawler.py
 │   └── async_crawler.py
+├── mcp_bridge/
+│   └── server.py
+├── deploy/
+│   ├── cloudrun-api.yaml
+│   └── cloudrun-mcp-bridge.yaml
 ├── examples/
 │   ├── basic.py
 │   └── robots_analysis.py
 ├── tests/
 │   └── test_crawler.py
 ├── Dockerfile
-├── .dockerignore
+├── docker-compose.yml
+├── .env.example
 └── pyproject.toml
 ```
 
