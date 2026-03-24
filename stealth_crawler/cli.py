@@ -1,7 +1,7 @@
+from typing import Dict, List, Optional
 import argparse
 import json
 import sys
-from typing import Dict, List
 
 from .config import CrawlerConfig
 from .crawler import Crawler
@@ -81,10 +81,7 @@ def cmd_parse(args: argparse.Namespace) -> int:
             "meta": HTMLParser.meta(result.text),
         }
     )
-    if args.json:
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
-    else:
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -149,7 +146,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
