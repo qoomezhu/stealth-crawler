@@ -1,8 +1,6 @@
-from dataclasses import asdict
-from typing import Dict, List, Optional
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from typing import Dict, List
 
 from .config import CrawlerConfig
 from .crawler import Crawler
