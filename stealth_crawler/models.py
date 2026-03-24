@@ -1,5 +1,6 @@
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Dict, Any
+import base64
 import json
 
 
@@ -17,3 +18,10 @@ class FetchResult:
 
     def json(self) -> Any:
         return json.loads(self.text)
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)
+        data["content_b64"] = base64.b64encode(self.content).decode("ascii")
+        data["content_length"] = len(self.content)
+        data.pop("content", None)
+        return data

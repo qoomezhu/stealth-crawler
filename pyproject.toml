@@ -33,12 +33,19 @@ stealth = [
 parser = [
     "lxml>=4.9.0",
 ]
+api = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.23.0",
     "black>=23.0.0",
     "ruff>=0.1.0",
 ]
+
+[project.scripts]
+stealth-crawler = "stealth_crawler.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/qoomezhu/stealth-crawler"
@@ -50,7 +57,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = [""]
 include = ["stealth_crawler*"]
 
 [tool.black]
