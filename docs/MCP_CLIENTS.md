@@ -111,9 +111,13 @@ Cursor 通常使用类似的 `mcpServers` 配置：
 ```python
 import asyncio
 from fastmcp import Client
+from fastmcp.client.auth import BearerAuth
 
 async def main():
-    client = Client("http://127.0.0.1:8001/mcp")
+    client = Client(
+        "http://127.0.0.1:8001/mcp",
+        auth=BearerAuth(token="your-mcp-token"),
+    )
 
     async with client:
         await client.ping()
@@ -133,10 +137,16 @@ asyncio.run(main())
 如果你要在 Agent 里挂载这个 MCP Bridge：
 
 ```python
+from fastmcp import Client
+from fastmcp.client.auth import BearerAuth
 from pydantic_ai import Agent
 from pydantic_ai.toolsets.fastmcp import FastMCPToolset
 
-toolset = FastMCPToolset("http://127.0.0.1:8001/mcp")
+client = Client(
+    "http://127.0.0.1:8001/mcp",
+    auth=BearerAuth(token="your-mcp-token"),
+)
+toolset = FastMCPToolset(client)
 agent = Agent("openai:gpt-5.2", toolsets=[toolset])
 ```
 
