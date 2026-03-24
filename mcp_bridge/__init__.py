@@ -1,1 +1,1 @@
-from .server import mcp
+"""MCP bridge package for Stealth Crawler."""
