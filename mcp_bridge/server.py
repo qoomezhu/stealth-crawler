@@ -1,17 +1,30 @@
-from typing import Any, Dict, List, Optional
+from __future__ import annotations
+
 import os
+from typing import Any, Dict, List, Optional, Set
 
 import httpx
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 
 API_BASE_URL = os.getenv("CRAWLER_API_BASE_URL", "http://127.0.0.1:8080").rstrip("/")
 API_KEY = os.getenv("CRAWLER_API_KEY", "").strip()
 HTTP_TIMEOUT = float(os.getenv("CRAWLER_HTTP_TIMEOUT", "60"))
-MCP_TRANSPORT = os.getenv("MCP_TRANSPORT", "stdio")
+MCP_TRANSPORT = os.getenv("MCP_TRANSPORT", "stdio").strip().lower()
 MCP_HOST = os.getenv("MCP_HOST", "0.0.0.0")
 MCP_PORT = int(os.getenv("MCP_PORT", "8001"))
+MCP_BEARER_TOKEN = os.getenv("MCP_BEARER_TOKEN", "").strip()
+MCP_PUBLIC_PATHS = {
+    path.strip()
+    for path in os.getenv("MCP_PUBLIC_PATHS", "/healthz").split(",")
+    if path.strip()
+}
 
 mcp = FastMCP("Stealth Crawler Bridge")
 
@@ -26,6 +39,47 @@ class CrawlOptions(BaseModel):
     rotate_user_agent: bool = True
     proxies: List[str] = Field(default_factory=list)
     headers: Dict[str, str] = Field(default_factory=dict)
+
+
+class BearerAuthMiddleware(BaseHTTPMiddleware):
+    """Validate Authorization: Bearer <token> for HTTP MCP requests."""
+
+    def __init__(self, app, expected_token: str, public_paths: Optional[Set[str]] = None):
+        super().__init__(app)
+        self.expected_token = expected_token
+        self.public_paths = public_paths or set()
+
+    @staticmethod
+    def _extract_bearer_token(request: Request) -> Optional[str]:
+        auth = request.headers.get("authorization", "")
+        if not auth.lower().startswith("bearer "):
+            return None
+        token = auth.split(" ", 1)[1].strip()
+        return token or None
+
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path in self.public_paths:
+            return await call_next(request)
+
+        # If no token is configured, the server remains open for local dev.
+        # For remote deployment, set MCP_BEARER_TOKEN.
+        if not self.expected_token:
+            return await call_next(request)
+
+        token = self._extract_bearer_token(request)
+        if token != self.expected_token:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Unauthorized"},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        return await call_next(request)
+
+
+async def _healthz(_: Request) -> JSONResponse:
+    return JSONResponse({"status": "ok", "service": "stealth-crawler-mcp-bridge"})
+
 
 
 def _auth_headers() -> Dict[str, str]:
@@ -82,8 +136,26 @@ async def analyze(url: str, robots_mode: str = "strict", user_agent: str = "*", 
     )
 
 
+
+def create_http_app():
+    middleware = [
+        Middleware(
+            BearerAuthMiddleware,
+            expected_token=MCP_BEARER_TOKEN,
+            public_paths=MCP_PUBLIC_PATHS,
+        )
+    ]
+    routes = [Route("/healthz", _healthz, methods=["GET"])]
+    return mcp.http_app(path="/mcp", middleware=middleware, routes=routes)
+
+
+http_app = create_http_app()
+
+
 if __name__ == "__main__":
-    if MCP_TRANSPORT.lower() == "http":
-        mcp.run(transport="http", host=MCP_HOST, port=MCP_PORT)
+    if MCP_TRANSPORT == "http":
+        import uvicorn
+
+        uvicorn.run(http_app, host=MCP_HOST, port=MCP_PORT)
     else:
         mcp.run()
