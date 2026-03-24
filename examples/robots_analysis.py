@@ -54,7 +54,7 @@ def example_fetch_with_mode():
     with Crawler(config=config) as crawler:
         result = crawler.get("https://httpbin.org/html")
         print(f"status_code: {result.status_code}")
-        print(f"title: {result.text[:60]}")
+        print(f"title snippet: {result.text[:60]}")
 
 
 if __name__ == "__main__":
