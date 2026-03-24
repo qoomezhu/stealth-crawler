@@ -1,13 +1,27 @@
+import os
+from typing import Dict, List
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from typing import Dict, List
 
 from .config import CrawlerConfig
 from .crawler import Crawler
 from .parser import HTMLParser
 from .robots import RobotsChecker
+from .security import SecurityMiddleware
 
 app = FastAPI(title="Stealth Crawler API", version="2.0.0")
+
+API_KEY = os.getenv("CRAWLER_API_KEY", "").strip() or None
+RATE_LIMIT_REQUESTS = int(os.getenv("CRAWLER_RATE_LIMIT_REQUESTS", "60"))
+RATE_LIMIT_WINDOW = int(os.getenv("CRAWLER_RATE_LIMIT_WINDOW", "60"))
+
+app.add_middleware(
+    SecurityMiddleware,
+    api_key=API_KEY,
+    rate_limit_requests=RATE_LIMIT_REQUESTS,
+    rate_limit_window=RATE_LIMIT_WINDOW,
+)
 
 
 class CrawlOptions(BaseModel):
