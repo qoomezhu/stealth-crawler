@@ -77,6 +77,8 @@ uvicorn stealth_crawler.http_api:app --host 0.0.0.0 --port 8080
 - `POST /parse`
 - `POST /analyze`
 
+部署与 MCP 方案见：`docs/DEPLOYMENT.md`
+
 ## Docker
 
 构建镜像：
