@@ -124,6 +124,10 @@ python -m mcp_bridge.server
 MCP_TRANSPORT=http MCP_PORT=8001 python -m mcp_bridge.server
 ```
 
+### MCP 客户端配置示例
+
+更详细的客户端配置见：`docs/MCP_CLIENTS.md`
+
 ## 目录结构
 
 ```text
