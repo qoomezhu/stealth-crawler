@@ -1,0 +1,26 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: mcp-bridge
+spec:
+  template:
+    spec:
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY/stealth-crawler:latest
+          command:
+            - python
+            - -m
+            - mcp_bridge.server
+          ports:
+            - containerPort: 8001
+          env:
+            - name: MCP_TRANSPORT
+              value: http
+            - name: MCP_HOST
+              value: 0.0.0.0
+            - name: MCP_PORT
+              value: "8001"
+            - name: CRAWLER_API_BASE_URL
+              value: https://YOUR-API-DOMAIN
+            - name: CRAWLER_API_KEY
+              value: CHANGE_ME
