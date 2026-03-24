@@ -20,7 +20,11 @@ spec:
               value: 0.0.0.0
             - name: MCP_PORT
               value: "8001"
+            - name: MCP_BEARER_TOKEN
+              value: CHANGE_ME_MCP_TOKEN
+            - name: MCP_PUBLIC_PATHS
+              value: /healthz
             - name: CRAWLER_API_BASE_URL
               value: https://YOUR-API-DOMAIN
             - name: CRAWLER_API_KEY
-              value: CHANGE_ME
+              value: CHANGE_ME_API_KEY

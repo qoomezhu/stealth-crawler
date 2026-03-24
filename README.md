@@ -96,7 +96,7 @@ docker compose up --build
 
 Compose 会启动：
 - `api`：爬虫 HTTP API
-- `mcp-bridge`：MCP Bridge（可选 HTTP 模式）
+- `mcp-bridge`：MCP Bridge（支持 `Authorization: Bearer` 的远程 HTTP endpoint）
 
 ## 云端部署 + MCP 调用
 
@@ -104,12 +104,14 @@ Compose 会启动：
 
 1. **API 容器**部署到云端
 2. **MCP Bridge** 连接到云端 API
-3. MCP 客户端只和 Bridge 交互
+3. MCP 客户端（例如 RikkaHub）通过 `Authorization: Bearer` 访问 Bridge 的 `/mcp`
 
 ### Bridge 环境变量
 
 - `CRAWLER_API_BASE_URL`
 - `CRAWLER_API_KEY`
+- `MCP_BEARER_TOKEN`
+- `MCP_PUBLIC_PATHS=/healthz`
 - `MCP_TRANSPORT=stdio|http`
 - `MCP_HOST`
 - `MCP_PORT`
@@ -120,13 +122,14 @@ Compose 会启动：
 # 本地启动 MCP Bridge（stdio）
 python -m mcp_bridge.server
 
-# 启动 HTTP 模式 MCP Bridge
-MCP_TRANSPORT=http MCP_PORT=8001 python -m mcp_bridge.server
+# 启动 HTTP 模式 MCP Bridge（远程调用）
+MCP_TRANSPORT=http MCP_BEARER_TOKEN=your-mcp-token python -m mcp_bridge.server
 ```
 
 ### MCP 客户端配置示例
 
-更详细的客户端配置见：`docs/MCP_CLIENTS.md`
+- `docs/MCP_CLIENTS.md`
+- `docs/RIKKAHUB.md`
 
 ## 目录结构
 

@@ -24,5 +24,7 @@ services:
       MCP_TRANSPORT: http
       MCP_HOST: 0.0.0.0
       MCP_PORT: 8001
+      MCP_BEARER_TOKEN: ${MCP_BEARER_TOKEN:-dev-mcp-token}
+      MCP_PUBLIC_PATHS: /healthz
     depends_on:
       - api

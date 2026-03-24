@@ -4,7 +4,7 @@
 
 > 建议结构：
 > - **本地开发**：直接以 `python -m mcp_bridge.server` 启动 stdio MCP Bridge
-> - **远端调用**：把 `MCP_TRANSPORT=http` 的 Bridge 部署到云端，再让客户端连接 URL
+> - **远端调用**：把 `MCP_TRANSPORT=http` 的 Bridge 部署到云端，再让客户端连接 URL，并携带 `Authorization: Bearer`
 
 ---
 
@@ -34,11 +34,36 @@
 - `CRAWLER_API_BASE_URL`：你的 HTTP API 地址
 - `CRAWLER_API_KEY`：与 API 服务一致的共享密钥
 
-如果你已经把 Bridge 以 HTTP 模式部署到云端，也可以直接把客户端指向 Bridge URL（取决于客户端是否支持 HTTP MCP）。
+---
+
+## 2) RikkaHub 远程 MCP 连接示例
+
+如果你的 RikkaHub 支持 MCP Server 的 URL + 自定义请求头，推荐这样配置：
+
+```json
+{
+  "mcpServers": {
+    "stealth-crawler": {
+      "url": "https://your-bridge-domain.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer your-mcp-token"
+      }
+    }
+  }
+}
+```
+
+### 说明
+
+- `url`：指向你远程部署的 MCP Bridge `/mcp`
+- `Authorization`：必须使用 `Bearer <token>` 格式
+- `your-mcp-token`：应与服务器端 `MCP_BEARER_TOKEN` 保持一致
+
+> 如果 RikkaHub 的配置界面不是 JSON，而是表单/环境变量形式，只要最终请求头中能注入 `Authorization: Bearer ...` 即可。
 
 ---
 
-## 2) Cursor 配置示例
+## 3) Cursor 配置示例
 
 Cursor 通常使用类似的 `mcpServers` 配置：
 
@@ -79,7 +104,7 @@ Cursor 通常使用类似的 `mcpServers` 配置：
 
 ---
 
-## 3) FastMCP Python Client 示例
+## 4) FastMCP Python Client 示例
 
 如果你要在 Python 里直接调用 MCP：
 
@@ -103,7 +128,7 @@ asyncio.run(main())
 
 ---
 
-## 4) Pydantic AI / FastMCPToolset 示例
+## 5) Pydantic AI / FastMCPToolset 示例
 
 如果你要在 Agent 里挂载这个 MCP Bridge：
 
@@ -117,7 +142,7 @@ agent = Agent("openai:gpt-5.2", toolsets=[toolset])
 
 ---
 
-## 5) 推荐的本地开发配置
+## 6) 推荐的本地开发配置
 
 ### `.env`
 
@@ -127,6 +152,7 @@ CRAWLER_API_KEY=dev-secret-change-me
 CRAWLER_RATE_LIMIT_REQUESTS=60
 CRAWLER_RATE_LIMIT_WINDOW=60
 MCP_TRANSPORT=stdio
+MCP_BEARER_TOKEN=dev-mcp-token-change-me
 ```
 
 ### 启动顺序
@@ -141,7 +167,7 @@ python -m mcp_bridge.server
 
 ---
 
-## 6) 部署到云端后的推荐配置
+## 7) 部署到云端后的推荐配置
 
 ### API
 
@@ -153,13 +179,14 @@ python -m mcp_bridge.server
 
 - `CRAWLER_API_BASE_URL`：云端 API 地址
 - `CRAWLER_API_KEY`：与 API 一致
+- `MCP_BEARER_TOKEN`：RikkaHub / MCP 客户端访问 Bridge 的 token
 - `MCP_TRANSPORT=http`：如果你要远程访问 Bridge
 - `MCP_HOST=0.0.0.0`
 - `MCP_PORT=8001`
 
 ---
 
-## 7) 工具映射
+## 8) 工具映射
 
 Bridge 当前暴露的 MCP tools：
 
@@ -170,9 +197,9 @@ Bridge 当前暴露的 MCP tools：
 
 ---
 
-## 8) 注意事项
+## 9) 注意事项
 
 1. 本地 `stdio` 模式最适合 Claude Desktop / Cursor 本地接入。
-2. 云端建议使用 API Key + 限流。
+2. 云端建议使用 `Authorization: Bearer` + API Key + 限流。
 3. 如果你的客户端只支持 stdio，不要把 Bridge 放成 HTTP 再去接。
 4. 如果你使用 HTTP Bridge，建议再加一层反代或网关鉴权。

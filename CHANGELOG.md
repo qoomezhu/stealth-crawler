@@ -1,5 +1,22 @@
 # Stealth Crawler - 更新日志
 
+## v2.2.0 - RikkaHub Bearer Auth / Remote MCP Endpoint
+
+### 新增
+
+- `mcp_bridge/server.py`：HTTP MCP endpoint 支持 `Authorization: Bearer` 鉴权
+- `docs/RIKKAHUB.md`：RikkaHub 专用接入说明
+- `docs/MCP_CLIENTS.md`：补充远程 Bearer 连接示例
+
+### 改进
+
+- `docker-compose.yml` 增加 `MCP_BEARER_TOKEN`
+- `deploy/cloudrun-mcp-bridge.yaml` 增加 Bearer Token 环境变量
+- `README.md` 与 `docs/DEPLOYMENT.md` 同步更新
+- `pyproject.toml` 中 `fastmcp` 版本提升到支持 `http_app()` 的版本
+
+---
+
 ## v2.1.1 - MCP Bridge / Docker / Security
 
 ### 新增

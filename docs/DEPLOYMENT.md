@@ -21,7 +21,7 @@ uvicorn stealth_crawler.http_api:app --host 0.0.0.0 --port 8080
 ### 启动 MCP Bridge
 
 ```bash
-python -m mcp_bridge.server
+MCP_TRANSPORT=http MCP_BEARER_TOKEN=dev-mcp-token-change-me python -m mcp_bridge.server
 ```
 
 ---
@@ -52,7 +52,7 @@ docker compose up --build
 
 Compose 中包含：
 - `api`：HTTP 爬虫服务
-- `mcp-bridge`：MCP Bridge 服务
+- `mcp-bridge`：带 Bearer 鉴权的 MCP Bridge 服务
 
 ---
 
@@ -74,9 +74,15 @@ Compose 中包含：
 环境变量：
 - `CRAWLER_API_BASE_URL`
 - `CRAWLER_API_KEY`
+- `MCP_BEARER_TOKEN`
+- `MCP_PUBLIC_PATHS=/healthz`
 - `MCP_TRANSPORT=http`
 - `MCP_HOST=0.0.0.0`
 - `MCP_PORT=8001`
+
+> 远端聊天 LLM（如 RikkaHub）连接时，请在请求头里带上：
+>
+> `Authorization: Bearer <MCP_BEARER_TOKEN>`
 
 ---
 
@@ -93,6 +99,7 @@ Compose 中包含：
 - `REGION`
 - `CHANGE_ME`
 - `YOUR-API-DOMAIN`
+- `CHANGE_ME_MCP_TOKEN`
 
 ---
 
@@ -100,7 +107,7 @@ Compose 中包含：
 
 ```text
 MCP Client
-  ↓
+  ↓ (Authorization: Bearer)
 MCP Bridge
   ↓ HTTP
 Cloud API
@@ -120,6 +127,7 @@ Crawler
 
 建议至少启用：
 - API Key
+- MCP Bearer Token
 - 速率限制
 - 云端日志审计
 - 域名白名单
@@ -133,7 +141,7 @@ Crawler
 2. 云端部署 API
 3. 加 API Key 和限流
 4. 云端部署 MCP Bridge
-5. MCP Client 接入
+5. 在 RikkaHub / Claude / Cursor 中添加 `Authorization: Bearer` 配置
 
 ---
 
