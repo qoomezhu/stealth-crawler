@@ -1,5 +1,26 @@
 # Stealth Crawler - 更新日志
 
+## v2.1.1 - MCP Bridge / Docker / Security
+
+### 新增
+
+- `stealth_crawler/cli.py`：统一 CLI
+- `stealth_crawler/http_api.py`：HTTP API
+- `stealth_crawler/security.py`：API Key 鉴权 + 内存限流
+- `mcp_bridge/server.py`：MCP Bridge（通过 MCP 调用远端 API）
+- `docker-compose.yml`：本地 API + Bridge 联调模板
+- `deploy/cloudrun-api.yaml` / `deploy/cloudrun-mcp-bridge.yaml`：云端部署模板
+- `.env.example`：环境变量模板
+
+### 改进
+
+- 清理根目录旧模块，统一为包结构
+- `pyproject.toml` 增加 `mcp` extra
+- Docker 镜像支持 API 与 MCP Bridge 运行
+- README 与部署文档同步更新
+
+---
+
 ## v1.1.0 - Robots.txt 分析功能
 
 ### 新增功能
@@ -76,18 +97,6 @@ response = crawler.get('https://example.com/admin')
 crawler.print_robots_report()
 ```
 
-### 4. 快速爬取
-
-```python
-from smart_crawler import smart_scrape
-
-# 忽略 robots.txt
-response = smart_scrape('https://example.com', robots_mode='ignore')
-
-# 严格遵守
-response = smart_scrape('https://example.com', robots_mode='strict')
-```
-
 ---
 
 ## 反爬压力测试
@@ -99,40 +108,24 @@ from smart_crawler import SmartStealthCrawler
 
 # 创建忽略模式的爬虫用于压力测试
 crawler = SmartStealthCrawler(
-    robots_mode='ignore',  # 忽略 robots.txt
+    robots_mode='ignore',  # 🚨 完全忽略 robots.txt
     rotate_proxy=True,     # 轮换代理
     rotate_ua=True,        # 轮换 User-Agent
     delay_range=(0.5, 1),  # 短延迟
     max_retries=5,         # 多次重试
 )
-
-# 压力测试
-urls = ['https://target-site.com/page/' + str(i) for i in range(100)]
-
-for url in urls:
-    try:
-        response = crawler.get(url)
-        print(f"✅ {url}: {response.status_code}")
-    except Exception as e:
-        print(f"❌ {url}: {e}")
-
-# 查看统计
-crawler.print_robots_report()
-print(f"\n请求统计: {crawler.get_stats()}")
 ```
 
 ---
 
 ## 文件结构更新
 
-```
+```text
 stealth-crawler/
-├── crawler.py              # 基础爬虫
-├── smart_crawler.py        # 智能爬虫 (新增)
-├── robots_analyzer.py      # Robots.txt 分析器 (新增)
-├── config.py
+├── stealth_crawler/
+├── mcp_bridge/
+├── deploy/
 ├── examples/
-│   ├── robots_analysis.py  # Robots.txt 示例 (新增)
-│   └── ...
+├── tests/
 └── ...
 ```
