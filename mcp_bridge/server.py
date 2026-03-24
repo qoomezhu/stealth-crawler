@@ -154,6 +154,9 @@ http_app = create_http_app()
 
 if __name__ == "__main__":
     if MCP_TRANSPORT == "http":
+        if not MCP_BEARER_TOKEN:
+            print("[WARN] MCP_BEARER_TOKEN is empty. HTTP MCP endpoint will be unauthenticated.")
+
         import uvicorn
 
         uvicorn.run(http_app, host=MCP_HOST, port=MCP_PORT)
