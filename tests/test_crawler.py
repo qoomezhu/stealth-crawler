@@ -69,7 +69,11 @@ class TestFetchResult(unittest.TestCase):
             ok=True,
             meta={"proxy": "http://p1:8080"},
         )
-        payload = result.to_normalized_dict(include_text=True, include_parsed=True, preview_chars=5)
+        payload = result.to_normalized_dict(
+            include_text=True,
+            include_parsed=True,
+            preview_chars=5,
+        )
         self.assertEqual(payload["kind"], "fetch")
         self.assertEqual(payload["response"]["status_code"], 200)
         self.assertEqual(payload["content"]["length"], len(result.content))
@@ -94,7 +98,12 @@ class TestConfig(unittest.TestCase):
 
 class TestProxyPool(unittest.TestCase):
     def test_rotation_and_disable(self):
-        pool = ProxyPool(["http://p1:8080", "http://p2:8080"], rotate=True, failure_threshold=1, cooldown=60)
+        pool = ProxyPool(
+            ["http://p1:8080", "http://p2:8080"],
+            rotate=True,
+            failure_threshold=1,
+            cooldown=60,
+        )
         first = pool.get_proxy_url()
         second = pool.get_proxy_url()
         self.assertIn(first, ["http://p1:8080", "http://p2:8080"])
@@ -131,7 +140,13 @@ class TestRobotsChecker(unittest.TestCase):
 
 class TestCrawler(unittest.TestCase):
     def test_request_with_mock_response(self):
-        crawler = Crawler(CrawlerConfig(respect_robots=False, delay_range=(0, 0), rotate_user_agent=False))
+        crawler = Crawler(
+            CrawlerConfig(
+                respect_robots=False,
+                delay_range=(0, 0),
+                rotate_user_agent=False,
+            )
+        )
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = "<html><title>ok</title></html>"
@@ -150,7 +165,13 @@ class TestCrawler(unittest.TestCase):
 
 class TestAsyncCrawler(unittest.IsolatedAsyncioTestCase):
     async def test_async_request_with_mock_response(self):
-        crawler = AsyncCrawler(CrawlerConfig(respect_robots=False, delay_range=(0, 0), rotate_user_agent=False))
+        crawler = AsyncCrawler(
+            CrawlerConfig(
+                respect_robots=False,
+                delay_range=(0, 0),
+                rotate_user_agent=False,
+            )
+        )
 
         class FakeResponse:
             def __init__(self):
