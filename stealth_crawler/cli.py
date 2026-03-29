@@ -42,7 +42,17 @@ def cmd_fetch(args: argparse.Namespace) -> int:
         result = crawler.get(args.url, headers=headers or None)
 
     if args.json:
-        print(json.dumps(result.to_normalized_dict(include_text=True, include_parsed=False, preview_chars=args.preview_chars), ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                result.to_normalized_dict(
+                    include_text=True,
+                    include_parsed=False,
+                    preview_chars=args.preview_chars,
+                ),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     else:
         print(f"status_code: {result.status_code}")
         print(f"final_url: {result.final_url}")
@@ -54,7 +64,11 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
 def cmd_analyze(args: argparse.Namespace) -> int:
     checker = RobotsChecker(timeout=args.timeout)
-    allowed, reason, crawl_delay = checker.check(args.url, user_agent=args.user_agent, mode=args.robots_mode)
+    allowed, reason, crawl_delay = checker.check(
+        args.url,
+        user_agent=args.user_agent,
+        mode=args.robots_mode,
+    )
     payload = normalize_analysis_payload(args.url, allowed, reason, crawl_delay, args.robots_mode)
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
