@@ -15,9 +15,7 @@ def _parse_headers(items: List[str]) -> Dict[str, str]:
     headers: Dict[str, str] = {}
     for item in items:
         if ":" not in item:
-            raise argparse.ArgumentTypeError(
-                f"Invalid header format: {item}. Use Key:Value"
-            )
+            raise argparse.ArgumentTypeError(f"Invalid header format: {item}. Use Key:Value")
         key, value = item.split(":", 1)
         headers[key.strip()] = value.strip()
     return headers
@@ -44,17 +42,7 @@ def cmd_fetch(args: argparse.Namespace) -> int:
         result = crawler.get(args.url, headers=headers or None)
 
     if args.json:
-        print(
-            json.dumps(
-                result.to_normalized_dict(
-                    include_text=True,
-                    include_parsed=False,
-                    preview_chars=args.preview_chars,
-                ),
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        print(json.dumps(result.to_normalized_dict(include_text=True, include_parsed=False, preview_chars=args.preview_chars), ensure_ascii=False, indent=2))
     else:
         print(f"status_code: {result.status_code}")
         print(f"final_url: {result.final_url}")
@@ -66,18 +54,8 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
 def cmd_analyze(args: argparse.Namespace) -> int:
     checker = RobotsChecker(timeout=args.timeout)
-    allowed, reason, crawl_delay = checker.check(
-        args.url,
-        user_agent=args.user_agent,
-        mode=args.robots_mode,
-    )
-    payload = normalize_analysis_payload(
-        args.url,
-        allowed,
-        reason,
-        crawl_delay,
-        args.robots_mode,
-    )
+    allowed, reason, crawl_delay = checker.check(args.url, user_agent=args.user_agent, mode=args.robots_mode)
+    payload = normalize_analysis_payload(args.url, allowed, reason, crawl_delay, args.robots_mode)
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
@@ -124,29 +102,16 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--max-retries", type=int, default=3)
     common.add_argument("--delay-min", type=float, default=0.5)
     common.add_argument("--delay-max", type=float, default=1.5)
-    common.add_argument(
-        "--robots-mode",
-        choices=["strict", "warn", "ignore"],
-        default="strict",
-    )
+    common.add_argument("--robots-mode", choices=["strict", "warn", "ignore"], default="strict")
     common.add_argument("--no-robots", action="store_true", help="disable robots checking")
     common.add_argument("--no-rotate-ua", action="store_true")
-    common.add_argument(
-        "--require-proxy",
-        action="store_true",
-        help="fail when no proxy is available",
-    )
+    common.add_argument("--require-proxy", action="store_true", help="fail when no proxy is available")
     common.add_argument("--proxy", action="append", default=[], help="proxy url, repeatable")
     common.add_argument("--log-file", default=None)
 
     fetch = sub.add_parser("fetch", parents=[common], help="fetch a url")
     fetch.add_argument("url")
-    fetch.add_argument(
-        "--header",
-        action="append",
-        default=[],
-        help="custom header in Key:Value format",
-    )
+    fetch.add_argument("--header", action="append", default=[], help="custom header in Key:Value format")
     fetch.add_argument("--json", action="store_true", help="output as json")
     fetch.add_argument("--preview-chars", type=int, default=1000)
     fetch.set_defaults(func=cmd_fetch)
