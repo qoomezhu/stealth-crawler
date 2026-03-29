@@ -6,7 +6,13 @@ from pydantic import BaseModel, Field
 
 from .config import build_crawler_config
 from .crawler import Crawler
-from .exceptions import CrawlerError, ParseError, ProxyError, RobotsBlockedError, RetryExhaustedError
+from .exceptions import (
+    CrawlerError,
+    ParseError,
+    ProxyError,
+    RobotsBlockedError,
+    RetryExhaustedError,
+)
 from .normalization import normalize_analysis_payload
 from .robots import RobotsChecker
 from .schemas import CrawlOptions
