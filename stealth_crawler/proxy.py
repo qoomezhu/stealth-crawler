@@ -11,7 +11,13 @@ class ProxyState:
 
 
 class ProxyPool:
-    def __init__(self, proxies: Optional[List[str]] = None, rotate: bool = True, failure_threshold: int = 3, cooldown: int = 60):
+    def __init__(
+        self,
+        proxies: Optional[List[str]] = None,
+        rotate: bool = True,
+        failure_threshold: int = 3,
+        cooldown: int = 60,
+    ):
         self.proxies = proxies or []
         self.rotate = rotate
         self.failure_threshold = failure_threshold
@@ -21,6 +27,9 @@ class ProxyPool:
 
     def _available(self, proxy: str) -> bool:
         return time.monotonic() >= self._states[proxy].disabled_until
+
+    def has_available_proxy(self) -> bool:
+        return any(self._available(proxy) for proxy in self.proxies)
 
     def get_proxy_url(self) -> Optional[str]:
         if not self.proxies:
