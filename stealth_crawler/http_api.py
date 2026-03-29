@@ -9,12 +9,11 @@ from .config import build_crawler_config
 from .crawler import Crawler
 from .exceptions import CrawlerError, ParseError, ProxyError, RobotsBlockedError, RetryExhaustedError
 from .normalization import normalize_analysis_payload
-from .parser import HTMLParser
 from .robots import RobotsChecker
 from .schemas import CrawlOptions
 from .security import SecurityMiddleware
 
-app = FastAPI(title="Stealth Crawler API", version="2.1.0")
+app = FastAPI(title="Stealth Crawler API", version="2.3.0")
 
 API_KEY = os.getenv("CRAWLER_API_KEY", "").strip() or None
 RATE_LIMIT_REQUESTS = int(os.getenv("CRAWLER_RATE_LIMIT_REQUESTS", "60"))
@@ -108,13 +107,7 @@ def parse(req: ParseRequest):
     try:
         with Crawler(config=config, proxies=req.options.proxies or None) as crawler:
             result = crawler.get(req.url, headers=req.options.headers or None)
-        payload = result.to_normalized_dict(include_text=True, include_parsed=True)
-        payload["analysis"] = {
-            "title": HTMLParser.title(result.text),
-            "links": HTMLParser.links(result.text, result.final_url),
-            "meta": HTMLParser.meta(result.text),
-        }
-        return payload
+        return result.to_normalized_dict(include_text=True, include_parsed=True)
     except Exception as exc:
         return _error_response(exc)
 
