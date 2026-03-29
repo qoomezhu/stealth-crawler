@@ -167,7 +167,7 @@ def analyze_route(req: AnalyzeRequest):
         return _error_response(exc)
 
 
-@app.router.routes.extend(mcp_app.routes)
+app.router.routes.extend(mcp_app.routes)
 
 
 @mcp.tool
