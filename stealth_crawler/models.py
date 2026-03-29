@@ -1,7 +1,9 @@
 from dataclasses import asdict, dataclass, field
-from typing import Dict, Any
+from typing import Any, Dict
 import base64
 import json
+
+from .normalization import normalize_fetch_payload
 
 
 @dataclass
@@ -25,3 +27,17 @@ class FetchResult:
         data["content_length"] = len(self.content)
         data.pop("content", None)
         return data
+
+    def to_normalized_dict(
+        self,
+        *,
+        include_text: bool = True,
+        include_parsed: bool = False,
+        preview_chars: int = 0,
+    ) -> Dict[str, Any]:
+        return normalize_fetch_payload(
+            self,
+            include_text=include_text,
+            include_parsed=include_parsed,
+            preview_chars=preview_chars,
+        )

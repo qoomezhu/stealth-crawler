@@ -1,6 +1,6 @@
 # 🕷️ Stealth Crawler
 
-一个可维护的 Python 爬虫实例，支持同步 / 异步请求、代理池、robots 感知、HTML 解析、CLI、HTTP API 和 MCP Bridge。
+一个可维护的 Python 爬虫实例，支持同步 / 异步请求、代理池、robots 感知、HTML 解析、**规范化输出**、CLI、HTTP API 和 MCP Bridge。
 
 ## 特性
 
@@ -9,9 +9,11 @@
 - 代理池轮换与失败熔断
 - robots.txt 检查（strict / warn / ignore）
 - HTML 标题、链接、Meta 提取
+- 规范化的 fetch / parse / analyze 输出
 - 标准日志系统
 - CLI 与 HTTP API
 - API Key 鉴权 + 速率限制
+- 可选 Redis 分布式限流
 - 可容器化、可云端部署、可通过 MCP 调用
 
 ## 安装
@@ -57,10 +59,13 @@ asyncio.run(main())
 
 ```bash
 stealth-crawler fetch https://httpbin.org/html
+stealth-crawler fetch https://httpbin.org/html --json
 stealth-crawler analyze https://example.com --robots-mode warn
 stealth-crawler parse https://httpbin.org/html --json
 stealth-crawler serve --host 0.0.0.0 --port 8080
 ```
+
+`--json` 输出采用规范化结构，适合后续入库、比对或压测统计。
 
 ## HTTP API
 
@@ -76,9 +81,10 @@ Authorization: Bearer <your-key>
 
 ### 速率限制
 
-默认使用内存版限流：
-- `CRAWLER_RATE_LIMIT_REQUESTS=60`
-- `CRAWLER_RATE_LIMIT_WINDOW=60`
+默认使用内存版限流；若要启用 Redis 分布式限流，请设置：
+
+- `CRAWLER_RATE_LIMIT_BACKEND=redis`
+- `CRAWLER_RATE_LIMIT_REDIS_URL=redis://localhost:6379/0`
 
 ### 接口
 
@@ -86,6 +92,8 @@ Authorization: Bearer <your-key>
 - `POST /fetch`
 - `POST /parse`
 - `POST /analyze`
+
+`/fetch` 和 `/parse` 返回规范化 JSON，包含 request / response / content / parsed 等字段。
 
 ## Docker / Compose
 
@@ -95,6 +103,7 @@ docker compose up --build
 ```
 
 Compose 会启动：
+- `redis`：分布式限流依赖
 - `api`：爬虫 HTTP API
 - `mcp-bridge`：MCP Bridge（支持 `Authorization: Bearer` 的远程 HTTP endpoint）
 

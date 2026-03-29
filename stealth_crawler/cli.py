@@ -3,9 +3,10 @@ import argparse
 import json
 import sys
 
-from .config import CrawlerConfig
+from .config import build_crawler_config
 from .crawler import Crawler
 from .exceptions import CrawlerError
+from .normalization import normalize_analysis_payload
 from .parser import HTMLParser
 from .robots import RobotsChecker
 
@@ -20,14 +21,16 @@ def _parse_headers(items: List[str]) -> Dict[str, str]:
     return headers
 
 
-def _build_config(args: argparse.Namespace) -> CrawlerConfig:
-    return CrawlerConfig(
+def _build_config(args: argparse.Namespace):
+    return build_crawler_config(
         timeout=args.timeout,
         max_retries=args.max_retries,
-        delay_range=(args.delay_min, args.delay_max),
+        delay_min=args.delay_min,
+        delay_max=args.delay_max,
         robots_mode=args.robots_mode,
         respect_robots=not args.no_robots,
         rotate_user_agent=not args.no_rotate_ua,
+        require_proxy=args.require_proxy,
         log_level=args.log_level,
     )
 
@@ -39,7 +42,17 @@ def cmd_fetch(args: argparse.Namespace) -> int:
         result = crawler.get(args.url, headers=headers or None)
 
     if args.json:
-        print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                result.to_normalized_dict(
+                    include_text=True,
+                    include_parsed=False,
+                    preview_chars=args.preview_chars,
+                ),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     else:
         print(f"status_code: {result.status_code}")
         print(f"final_url: {result.final_url}")
@@ -52,13 +65,7 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 def cmd_analyze(args: argparse.Namespace) -> int:
     checker = RobotsChecker(timeout=args.timeout)
     allowed, reason, crawl_delay = checker.check(args.url, user_agent=args.user_agent, mode=args.robots_mode)
-    payload = {
-        "url": args.url,
-        "allowed": allowed,
-        "reason": reason,
-        "crawl_delay": crawl_delay,
-        "robots_mode": args.robots_mode,
-    }
+    payload = normalize_analysis_payload(args.url, allowed, reason, crawl_delay, args.robots_mode)
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
@@ -73,14 +80,7 @@ def cmd_parse(args: argparse.Namespace) -> int:
     with Crawler(config=config, proxies=args.proxy or None, log_file=args.log_file) as crawler:
         result = crawler.get(args.url)
 
-    payload = result.to_dict()
-    payload.update(
-        {
-            "title": HTMLParser.title(result.text),
-            "links": HTMLParser.links(result.text, result.final_url),
-            "meta": HTMLParser.meta(result.text),
-        }
-    )
+    payload = result.to_normalized_dict(include_text=True, include_parsed=True)
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 
@@ -115,6 +115,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--robots-mode", choices=["strict", "warn", "ignore"], default="strict")
     common.add_argument("--no-robots", action="store_true", help="disable robots checking")
     common.add_argument("--no-rotate-ua", action="store_true")
+    common.add_argument("--require-proxy", action="store_true", help="fail when no proxy is available")
     common.add_argument("--proxy", action="append", default=[], help="proxy url, repeatable")
     common.add_argument("--log-file", default=None)
 

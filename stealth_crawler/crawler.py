@@ -8,7 +8,7 @@ except Exception:
     import requests as httpx
 
 from .config import CrawlerConfig
-from .exceptions import RobotsBlockedError, RetryExhaustedError
+from .exceptions import ProxyError, RetryExhaustedError, RobotsBlockedError
 from .logger import get_logger
 from .models import FetchResult
 from .proxy import ProxyPool
@@ -44,7 +44,7 @@ class Crawler:
             pass
 
     def _delay(self):
-        lo, hi = self.config.delay_range
+        lo, hi = sorted(self.config.delay_range)
         time.sleep(random.uniform(lo, hi))
 
     def _headers(self, extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
@@ -70,9 +70,17 @@ class Crawler:
         allow_redirects: bool = True,
         **kwargs: Any,
     ) -> FetchResult:
+        if self.config.require_proxy and not self.proxy_pool.has_available_proxy():
+            self.stats["failed"] += 1
+            raise ProxyError("Proxy access required but no available proxies were found")
+
         if self.config.respect_robots:
             ua_for_check = headers.get("User-Agent") if headers else "*"
-            allowed, reason, delay = self.robots.check(url, user_agent=ua_for_check or "*", mode=self.config.robots_mode)
+            allowed, reason, delay = self.robots.check(
+                url,
+                user_agent=ua_for_check or "*",
+                mode=self.config.robots_mode,
+            )
             if not allowed:
                 raise RobotsBlockedError(reason)
             if delay:
@@ -106,6 +114,8 @@ class Crawler:
                     self.stats["retries"] += 1
                     self.proxy_pool.mark_failure(proxy_url)
                     final_error = f"retryable status {resp.status_code}"
+                    if self.config.require_proxy and not self.proxy_pool.has_available_proxy():
+                        raise ProxyError("Proxy access required but all proxies are exhausted")
                     time.sleep(self._backoff(attempt))
                     continue
 
@@ -122,10 +132,15 @@ class Crawler:
                     ok=200 <= resp.status_code < 400,
                     meta={"proxy": proxy_url},
                 )
+            except ProxyError:
+                self.stats["failed"] += 1
+                raise
             except Exception as exc:
                 self.stats["retries"] += 1
                 self.proxy_pool.mark_failure(proxy_url)
                 final_error = exc
+                if self.config.require_proxy and not self.proxy_pool.has_available_proxy():
+                    raise ProxyError("Proxy access required but all proxies are exhausted")
                 time.sleep(self._backoff(attempt))
 
         self.stats["failed"] += 1

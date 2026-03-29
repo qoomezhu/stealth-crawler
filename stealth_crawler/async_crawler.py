@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 import aiohttp
 
 from .config import CrawlerConfig
-from .exceptions import RobotsBlockedError, RetryExhaustedError
+from .exceptions import ProxyError, RetryExhaustedError, RobotsBlockedError
 from .logger import get_logger
 from .models import FetchResult
 from .proxy import ProxyPool
@@ -31,7 +31,10 @@ class AsyncCrawler:
 
     async def __aenter__(self):
         timeout = aiohttp.ClientTimeout(total=self.config.timeout)
-        self.session = aiohttp.ClientSession(timeout=timeout, headers=self.config.default_headers.copy())
+        self.session = aiohttp.ClientSession(
+            timeout=timeout,
+            headers=self.config.default_headers.copy(),
+        )
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -50,7 +53,7 @@ class AsyncCrawler:
         return self.config.backoff_factor * (2 ** max(0, attempt - 1))
 
     async def _delay(self):
-        lo, hi = self.config.delay_range
+        lo, hi = sorted(self.config.delay_range)
         await asyncio.sleep(random.uniform(lo, hi))
 
     async def _request(
@@ -68,9 +71,17 @@ class AsyncCrawler:
         if self.session is None:
             raise RuntimeError("Use `async with AsyncCrawler() as crawler:` first")
 
+        if self.config.require_proxy and not self.proxy_pool.has_available_proxy():
+            self.stats["failed"] += 1
+            raise ProxyError("Proxy access required but no available proxies were found")
+
         if self.config.respect_robots:
             ua_for_check = headers.get("User-Agent") if headers else "*"
-            allowed, reason, delay = self.robots.check(url, user_agent=ua_for_check or "*", mode=self.config.robots_mode)
+            allowed, reason, delay = self.robots.check(
+                url,
+                user_agent=ua_for_check or "*",
+                mode=self.config.robots_mode,
+            )
             if not allowed:
                 raise RobotsBlockedError(reason)
             if delay:
@@ -103,6 +114,8 @@ class AsyncCrawler:
                         self.stats["retries"] += 1
                         self.proxy_pool.mark_failure(proxy_url)
                         final_error = f"retryable status {resp.status}"
+                        if self.config.require_proxy and not self.proxy_pool.has_available_proxy():
+                            raise ProxyError("Proxy access required but all proxies are exhausted")
                         await asyncio.sleep(self._backoff(attempt))
                         continue
 
@@ -119,10 +132,15 @@ class AsyncCrawler:
                         ok=200 <= resp.status < 400,
                         meta={"proxy": proxy_url},
                     )
+            except ProxyError:
+                self.stats["failed"] += 1
+                raise
             except Exception as exc:
                 self.stats["retries"] += 1
                 self.proxy_pool.mark_failure(proxy_url)
                 final_error = exc
+                if self.config.require_proxy and not self.proxy_pool.has_available_proxy():
+                    raise ProxyError("Proxy access required but all proxies are exhausted")
                 await asyncio.sleep(self._backoff(attempt))
 
         self.stats["failed"] += 1

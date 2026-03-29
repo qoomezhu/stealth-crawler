@@ -25,6 +25,36 @@ class CrawlerConfig:
     respect_robots: bool = True
     robots_mode: str = "strict"  # strict / warn / ignore
     rotate_user_agent: bool = True
+    require_proxy: bool = False
     default_headers: Dict[str, str] = field(default_factory=lambda: DEFAULT_HEADERS.copy())
     user_agents: List[str] = field(default_factory=lambda: DEFAULT_USER_AGENTS.copy())
     log_level: str = "INFO"
+
+
+def build_crawler_config(
+    *,
+    timeout: int = 20,
+    max_retries: int = 3,
+    delay_min: float = 0.5,
+    delay_max: float = 1.5,
+    robots_mode: str = "strict",
+    respect_robots: bool = True,
+    rotate_user_agent: bool = True,
+    require_proxy: bool = False,
+    log_level: str = "INFO",
+) -> CrawlerConfig:
+    timeout = max(1, int(timeout))
+    max_retries = max(0, int(max_retries))
+    lo, hi = sorted((float(delay_min), float(delay_max)))
+    lo = max(0.0, lo)
+    hi = max(lo, hi)
+    return CrawlerConfig(
+        timeout=timeout,
+        max_retries=max_retries,
+        delay_range=(lo, hi),
+        robots_mode=robots_mode,
+        respect_robots=respect_robots,
+        rotate_user_agent=rotate_user_agent,
+        require_proxy=require_proxy,
+        log_level=log_level,
+    )
