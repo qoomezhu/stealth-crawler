@@ -55,7 +55,9 @@ class RedisRateLimitBackend:
         try:
             import redis.asyncio as redis
         except Exception as exc:
-            raise RuntimeError("Redis rate limiting requires installing the 'redis' package") from exc
+            raise RuntimeError(
+                "Redis rate limiting requires installing the 'redis' package"
+            ) from exc
 
         self._redis = redis.from_url(redis_url, encoding="utf-8", decode_responses=True)
         self._key_prefix = key_prefix
