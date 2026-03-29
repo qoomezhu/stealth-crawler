@@ -64,7 +64,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = [""]
-include = ["stealth_crawler*", "mcp_bridge*"]
+include = ["stealth_crawler*"]
 
 [tool.black]
 line-length = 100
