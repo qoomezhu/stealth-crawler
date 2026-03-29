@@ -1,6 +1,6 @@
 # 🕷️ Stealth Crawler
 
-一个可维护的 Python 爬虫实例，支持同步 / 异步请求、代理池、robots 感知、HTML 解析、**规范化输出**、CLI、HTTP API 和 MCP Bridge。
+一个可维护的 Python 爬虫实例，支持同步 / 异步请求、代理池、robots 感知、HTML 解析、**规范化输出**、CLI、HTTP API 和内置 MCP 接口。
 
 ## 特性
 
@@ -14,6 +14,7 @@
 - CLI 与 HTTP API
 - API Key 鉴权 + 速率限制
 - 可选 Redis 分布式限流
+- HTTP API 与 MCP 同进程一体化部署
 - 可容器化、可云端部署、可通过 MCP 调用
 
 ## 安装
@@ -92,6 +93,8 @@ Authorization: Bearer <your-key>
 - `POST /fetch`
 - `POST /parse`
 - `POST /analyze`
+- `GET /mcp/healthz`
+- `POST /mcp`
 
 `/fetch` 和 `/parse` 返回规范化 JSON，包含 request / response / content / parsed 等字段。
 
@@ -104,41 +107,35 @@ docker compose up --build
 
 Compose 会启动：
 - `redis`：分布式限流依赖
-- `api`：爬虫 HTTP API
-- `mcp-bridge`：MCP Bridge（支持 `Authorization: Bearer` 的远程 HTTP endpoint）
+- `app`：统一的 HTTP API + MCP 服务
 
 ## 云端部署 + MCP 调用
 
 推荐方案：
 
-1. **API 容器**部署到云端
-2. **MCP Bridge** 连接到云端 API
-3. MCP 客户端（例如 RikkaHub）通过 `Authorization: Bearer` 访问 Bridge 的 `/mcp`
+1. **单个应用容器**部署到云端
+2. HTTP API 与 MCP 接口共用同一进程与同一鉴权层
+3. MCP 客户端（例如 RikkaHub）通过 `Authorization: Bearer` 访问 `/mcp`
 
-### Bridge 环境变量
+### 环境变量
 
-- `CRAWLER_API_BASE_URL`
 - `CRAWLER_API_KEY`
+- `CRAWLER_RATE_LIMIT_BACKEND`
+- `CRAWLER_RATE_LIMIT_REQUESTS`
+- `CRAWLER_RATE_LIMIT_WINDOW`
+- `CRAWLER_RATE_LIMIT_REDIS_URL`
 - `MCP_BEARER_TOKEN`
-- `MCP_PUBLIC_PATHS=/healthz`
-- `MCP_TRANSPORT=stdio|http`
-- `MCP_HOST`
-- `MCP_PORT`
+- `MCP_PUBLIC_PATHS=/mcp/healthz`
 
 ### 示例
 
 ```bash
-# 本地启动 MCP Bridge（stdio）
+# 本地启动统一服务
+uvicorn stealth_crawler.http_api:app --host 0.0.0.0 --port 8080
+
+# 如需兼容旧启动方式，也可以
 python -m mcp_bridge.server
-
-# 启动 HTTP 模式 MCP Bridge（远程调用）
-MCP_TRANSPORT=http MCP_BEARER_TOKEN=your-mcp-token python -m mcp_bridge.server
 ```
-
-### MCP 客户端配置示例
-
-- `docs/MCP_CLIENTS.md`
-- `docs/RIKKAHUB.md`
 
 ## 目录结构
 
