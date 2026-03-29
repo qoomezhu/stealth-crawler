@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional
 
 
@@ -19,13 +20,10 @@ def get_logger(name: str = "stealth_crawler", level: str = "INFO", log_file: Opt
         logger.addHandler(console)
 
     if log_file:
+        target_file = os.path.abspath(log_file)
         has_file = any(
             isinstance(handler, logging.FileHandler)
-            and getattr(handler, "baseFilename", None) == getattr(
-                logging.FileHandler(log_file, encoding="utf-8"),
-                "baseFilename",
-                None,
-            )
+            and getattr(handler, "baseFilename", None) == target_file
             for handler in logger.handlers
         )
         if not has_file:
