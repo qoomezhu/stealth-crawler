@@ -1,5 +1,5 @@
-import time
 import itertools
+import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -42,8 +42,10 @@ class ProxyPool:
                     return proxy
             return None
 
-        proxy = self.proxies[0]
-        return proxy if self._available(proxy) else None
+        for proxy in self.proxies:
+            if self._available(proxy):
+                return proxy
+        return None
 
     @staticmethod
     def to_requests_dict(proxy_url: Optional[str]) -> Optional[Dict[str, str]]:
