@@ -11,7 +11,6 @@ RUN apt-get update \
 
 COPY pyproject.toml README.md requirements.txt ./
 COPY stealth_crawler ./stealth_crawler
-COPY mcp_bridge ./mcp_bridge
 
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir ".[api,stealth,mcp]"
