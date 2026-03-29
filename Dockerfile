@@ -11,13 +11,11 @@ RUN apt-get update \
 
 COPY pyproject.toml README.md requirements.txt ./
 COPY stealth_crawler ./stealth_crawler
-COPY examples ./examples
-COPY tests ./tests
 COPY mcp_bridge ./mcp_bridge
 
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir ".[api,stealth,mcp]"
 
-EXPOSE 8080 8001
+EXPOSE 8080
 
 CMD ["uvicorn", "stealth_crawler.http_api:app", "--host", "0.0.0.0", "--port", "8080"]
