@@ -68,7 +68,7 @@ stealth-crawler serve --host 0.0.0.0 --port 8080
 
 `--json` 输出采用规范化结构，适合后续入库、比对或压测统计。
 
-## HTTP API
+## HTTP API 与 MCP
 
 ### 认证
 
@@ -79,6 +79,8 @@ X-API-Key: <your-key>
 # 或
 Authorization: Bearer <your-key>
 ```
+
+如果设置了 `MCP_BEARER_TOKEN`，`/mcp` 入口也会要求同样的 Bearer 鉴权。
 
 ### 速率限制
 
@@ -109,13 +111,13 @@ Compose 会启动：
 - `redis`：分布式限流依赖
 - `app`：统一的 HTTP API + MCP 服务
 
-## 云端部署 + MCP 调用
+## 云端部署
 
 推荐方案：
 
 1. **单个应用容器**部署到云端
 2. HTTP API 与 MCP 接口共用同一进程与同一鉴权层
-3. MCP 客户端（例如 RikkaHub）通过 `Authorization: Bearer` 访问 `/mcp`
+3. MCP 客户端通过 `Authorization: Bearer` 访问 `/mcp`
 
 ### 环境变量
 
@@ -130,11 +132,7 @@ Compose 会启动：
 ### 示例
 
 ```bash
-# 本地启动统一服务
 uvicorn stealth_crawler.http_api:app --host 0.0.0.0 --port 8080
-
-# 如需兼容旧启动方式，也可以
-python -m mcp_bridge.server
 ```
 
 ## 目录结构
@@ -156,11 +154,8 @@ stealth-crawler/
 │   ├── parser.py
 │   ├── crawler.py
 │   └── async_crawler.py
-├── mcp_bridge/
-│   └── server.py
 ├── deploy/
-│   ├── cloudrun-api.yaml
-│   └── cloudrun-mcp-bridge.yaml
+│   └── cloudrun-api.yaml
 ├── examples/
 │   ├── basic.py
 │   └── robots_analysis.py
