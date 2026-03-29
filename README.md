@@ -155,7 +155,7 @@ stealth-crawler/
 │   ├── crawler.py
 │   └── async_crawler.py
 ├── deploy/
-│   └── cloudrun-api.yaml
+│   └── cloudrun.yaml
 ├── examples/
 │   ├── basic.py
 │   └── robots_analysis.py
