@@ -34,20 +34,6 @@ MCP_PUBLIC_PATHS = {
 }
 
 mcp = FastMCP("Stealth Crawler")
-mcp_app = mcp.http_app(path="/mcp")
-
-app = FastAPI(title="Stealth Crawler API", version=app_version, lifespan=mcp_app.lifespan)
-
-app.add_middleware(
-    SecurityMiddleware,
-    api_key=API_KEY,
-    rate_limit_requests=RATE_LIMIT_REQUESTS,
-    rate_limit_window=RATE_LIMIT_WINDOW,
-    rate_limit_backend=RATE_LIMIT_BACKEND,
-    redis_url=RATE_LIMIT_REDIS_URL,
-    mcp_bearer_token=MCP_BEARER_TOKEN,
-    mcp_public_paths=MCP_PUBLIC_PATHS,
-)
 
 
 class FetchRequest(BaseModel):
@@ -138,6 +124,47 @@ def _analysis_payload(url: str, robots_mode: str, user_agent: str, timeout: int)
     )
 
 
+@mcp.tool
+async def health() -> Dict[str, str]:
+    return {"status": "ok", "service": "stealth-crawler"}
+
+
+@mcp.tool
+async def fetch(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, object]:
+    return _fetch_payload(url, options or CrawlOptions(), None)
+
+
+@mcp.tool
+async def parse(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, object]:
+    return _parse_payload(url, options or CrawlOptions(), None)
+
+
+@mcp.tool
+async def analyze(
+    url: str,
+    robots_mode: str = "strict",
+    user_agent: str = "*",
+    timeout: int = 10,
+) -> Dict[str, object]:
+    return _analysis_payload(url, robots_mode, user_agent, timeout)
+
+
+mcp_app = mcp.http_app(path="/mcp")
+
+app = FastAPI(title="Stealth Crawler API", version=app_version, lifespan=mcp_app.lifespan)
+
+app.add_middleware(
+    SecurityMiddleware,
+    api_key=API_KEY,
+    rate_limit_requests=RATE_LIMIT_REQUESTS,
+    rate_limit_window=RATE_LIMIT_WINDOW,
+    rate_limit_backend=RATE_LIMIT_BACKEND,
+    redis_url=RATE_LIMIT_REDIS_URL,
+    mcp_bearer_token=MCP_BEARER_TOKEN,
+    mcp_public_paths=MCP_PUBLIC_PATHS,
+)
+
+
 @app.get("/health")
 def health_route():
     return {"status": "ok", "service": "stealth-crawler"}
@@ -168,28 +195,3 @@ def analyze_route(req: AnalyzeRequest):
 
 
 app.mount("/", mcp_app)
-
-
-@mcp.tool
-async def health() -> Dict[str, str]:
-    return health_route()
-
-
-@mcp.tool
-async def fetch(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, object]:
-    return _fetch_payload(url, options or CrawlOptions(), None)
-
-
-@mcp.tool
-async def parse(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, object]:
-    return _parse_payload(url, options or CrawlOptions(), None)
-
-
-@mcp.tool
-async def analyze(
-    url: str,
-    robots_mode: str = "strict",
-    user_agent: str = "*",
-    timeout: int = 10,
-) -> Dict[str, object]:
-    return _analysis_payload(url, robots_mode, user_agent, timeout)
