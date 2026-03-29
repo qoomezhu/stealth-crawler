@@ -126,15 +126,19 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         rate_limit_window: int = 60,
         rate_limit_backend: str = "memory",
         redis_url: Optional[str] = None,
+        mcp_bearer_token: Optional[str] = None,
         bypass_paths: Optional[Iterable[str]] = None,
+        mcp_public_paths: Optional[Iterable[str]] = None,
     ):
         super().__init__(app)
         self.api_key = api_key.strip() if api_key else None
+        self.mcp_bearer_token = mcp_bearer_token.strip() if mcp_bearer_token else None
         self.rate_limit_requests = max(0, int(rate_limit_requests))
         self.rate_limit_window = max(1, int(rate_limit_window))
         self.bypass_paths: Set[str] = set(
             bypass_paths or {"/health", "/docs", "/redoc", "/openapi.json"}
         )
+        self.mcp_public_paths: Set[str] = set(mcp_public_paths or {"/mcp/healthz"})
         self._backend = self._build_backend(rate_limit_backend, redis_url)
 
     def _build_backend(
@@ -169,7 +173,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         return "unknown"
 
     def _is_bypassed(self, request: Request) -> bool:
-        return request.url.path in self.bypass_paths
+        path = request.url.path
+        return path in self.bypass_paths or path in self.mcp_public_paths
 
     async def _check_rate_limit(self, request: Request) -> Tuple[bool, int, int, int]:
         """Return (allowed, limit, remaining, retry_after)."""
@@ -187,7 +192,17 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         if self._is_bypassed(request):
             return await call_next(request)
 
-        if self.api_key:
+        path = request.url.path
+        if path.startswith("/mcp"):
+            if self.mcp_bearer_token:
+                provided = self._extract_token(request)
+                if provided != self.mcp_bearer_token:
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": "Unauthorized"},
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+        elif self.api_key:
             provided = self._extract_token(request)
             if provided != self.api_key:
                 return JSONResponse(
