@@ -1,5 +1,4 @@
 import os
-from typing import Dict, List
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
