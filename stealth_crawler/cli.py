@@ -69,7 +69,13 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         user_agent=args.user_agent,
         mode=args.robots_mode,
     )
-    payload = normalize_analysis_payload(args.url, allowed, reason, crawl_delay, args.robots_mode)
+    payload = normalize_analysis_payload(
+        args.url,
+        allowed,
+        reason,
+        crawl_delay,
+        args.robots_mode,
+    )
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
@@ -119,13 +125,22 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--robots-mode", choices=["strict", "warn", "ignore"], default="strict")
     common.add_argument("--no-robots", action="store_true", help="disable robots checking")
     common.add_argument("--no-rotate-ua", action="store_true")
-    common.add_argument("--require-proxy", action="store_true", help="fail when no proxy is available")
+    common.add_argument(
+        "--require-proxy",
+        action="store_true",
+        help="fail when no proxy is available",
+    )
     common.add_argument("--proxy", action="append", default=[], help="proxy url, repeatable")
     common.add_argument("--log-file", default=None)
 
     fetch = sub.add_parser("fetch", parents=[common], help="fetch a url")
     fetch.add_argument("url")
-    fetch.add_argument("--header", action="append", default=[], help="custom header in Key:Value format")
+    fetch.add_argument(
+        "--header",
+        action="append",
+        default=[],
+        help="custom header in Key:Value format",
+    )
     fetch.add_argument("--json", action="store_true", help="output as json")
     fetch.add_argument("--preview-chars", type=int, default=1000)
     fetch.set_defaults(func=cmd_fetch)
