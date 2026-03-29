@@ -129,11 +129,6 @@ async def health() -> Dict[str, str]:
     return {"status": "ok", "service": "stealth-crawler"}
 
 
-@mcp.custom_route("/mcp/healthz", methods=["GET"])
-async def mcp_healthz():
-    return JSONResponse({"status": "ok", "service": "stealth-crawler-mcp"})
-
-
 @mcp.tool
 async def fetch(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, object]:
     return _fetch_payload(url, options or CrawlOptions(), None)
@@ -173,6 +168,11 @@ app.add_middleware(
 @app.get("/health")
 def health_route():
     return {"status": "ok", "service": "stealth-crawler"}
+
+
+@app.get("/mcp/healthz")
+def mcp_health_route():
+    return {"status": "ok", "service": "stealth-crawler-mcp"}
 
 
 @app.post("/fetch")
