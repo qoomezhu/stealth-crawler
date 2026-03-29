@@ -1,4 +1,4 @@
-from stealth_crawler import Crawler, AsyncCrawler, HTMLParser
+from stealth_crawler import Crawler, HTMLParser
 
 
 def main():
