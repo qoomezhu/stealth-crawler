@@ -212,6 +212,11 @@ class TestHTTPAPI(unittest.TestCase):
 
         self.client = TestClient(app)
 
+    def test_healthz_route_exists_for_mcp(self):
+        response = self.client.get("/mcp/healthz")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ok")
+
     def test_fetch_returns_normalized_payload(self):
         class FakeResult:
             def to_normalized_dict(self, include_text=True, include_parsed=False, preview_chars=0):
