@@ -100,18 +100,29 @@ async def health() -> Dict[str, Any]:
 async def fetch(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, Any]:
     """Fetch a URL through the remote crawler API."""
     options = options or CrawlOptions()
-    return await _post("/fetch", {"url": url, "options": options.model_dump()})
+    return await _post(
+        "/fetch",
+        {"url": url, "options": options.model_dump()},
+    )
 
 
 @mcp.tool
 async def parse(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, Any]:
     """Fetch and parse a URL through the remote crawler API."""
     options = options or CrawlOptions()
-    return await _post("/parse", {"url": url, "options": options.model_dump()})
+    return await _post(
+        "/parse",
+        {"url": url, "options": options.model_dump()},
+    )
 
 
 @mcp.tool
-async def analyze(url: str, robots_mode: str = "strict", user_agent: str = "*", timeout: int = 10) -> Dict[str, Any]:
+async def analyze(
+    url: str,
+    robots_mode: str = "strict",
+    user_agent: str = "*",
+    timeout: int = 10,
+) -> Dict[str, Any]:
     """Analyze robots.txt for a URL."""
     return await _post(
         "/analyze",
