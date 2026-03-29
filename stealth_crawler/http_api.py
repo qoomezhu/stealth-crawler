@@ -131,7 +131,7 @@ async def health() -> Dict[str, str]:
 
 @mcp.custom_route("/healthz", methods=["GET"])
 async def mcp_healthz():
-    return {"status": "ok", "service": "stealth-crawler-mcp"}
+    return JSONResponse({"status": "ok", "service": "stealth-crawler-mcp"})
 
 
 @mcp.tool
