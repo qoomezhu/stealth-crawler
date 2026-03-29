@@ -5,12 +5,13 @@ from typing import Any, Dict, List, Optional, Set
 
 import httpx
 from fastmcp import FastMCP
-from pydantic import BaseModel, Field
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
+
+from stealth_crawler.schemas import CrawlOptions
 
 
 API_BASE_URL = os.getenv("CRAWLER_API_BASE_URL", "http://127.0.0.1:8080").rstrip("/")
@@ -27,18 +28,6 @@ MCP_PUBLIC_PATHS = {
 }
 
 mcp = FastMCP("Stealth Crawler Bridge")
-
-
-class CrawlOptions(BaseModel):
-    timeout: int = 20
-    max_retries: int = 3
-    delay_min: float = 0.5
-    delay_max: float = 1.5
-    robots_mode: str = "strict"
-    respect_robots: bool = True
-    rotate_user_agent: bool = True
-    proxies: List[str] = Field(default_factory=list)
-    headers: Dict[str, str] = Field(default_factory=dict)
 
 
 class BearerAuthMiddleware(BaseHTTPMiddleware):
@@ -79,7 +68,6 @@ class BearerAuthMiddleware(BaseHTTPMiddleware):
 
 async def _healthz(_: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "service": "stealth-crawler-mcp-bridge"})
-
 
 
 def _auth_headers() -> Dict[str, str]:
@@ -134,7 +122,6 @@ async def analyze(url: str, robots_mode: str = "strict", user_agent: str = "*", 
             "timeout": timeout,
         },
     )
-
 
 
 def create_http_app():

@@ -1,14 +1,14 @@
 [project]
 name = "stealth-crawler"
-version = "2.2.0"
-description = "A maintainable Python web crawler with sync/async support, proxy pool, robots-aware access, and HTML parsing."
+version = "2.3.0"
+description = "A maintainable Python web crawler with sync/async support, proxy pool, normalized output, and rate limiting."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [
     {name = "qoomezhu"}
 ]
-keywords = ["web-scraping", "crawler", "proxy", "robots", "asyncio", "mcp"]
+keywords = ["web-scraping", "crawler", "proxy", "robots", "asyncio", "mcp", "redis"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -36,6 +36,7 @@ parser = [
 api = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
+    "redis>=5.0.0",
 ]
 mcp = [
     "fastmcp>=2.6.0",
