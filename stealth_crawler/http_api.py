@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -48,8 +48,6 @@ app.add_middleware(
     mcp_bearer_token=MCP_BEARER_TOKEN,
     mcp_public_paths=MCP_PUBLIC_PATHS,
 )
-
-app.mount("/mcp", mcp_app)
 
 
 class FetchRequest(BaseModel):
@@ -167,6 +165,9 @@ def analyze_route(req: AnalyzeRequest):
         return _analysis_payload(req.url, req.robots_mode, req.user_agent, req.timeout)
     except Exception as exc:
         return _error_response(exc)
+
+
+@app.router.routes.extend(mcp_app.routes)
 
 
 @mcp.tool
