@@ -1,7 +1,9 @@
 import os
+from typing import Dict, Optional
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
 from .config import build_crawler_config
@@ -14,26 +16,24 @@ from .exceptions import (
     RetryExhaustedError,
 )
 from .normalization import normalize_analysis_payload
-from .robots import RobotsChecker
 from .schemas import CrawlOptions
 from .security import SecurityMiddleware
 
-app = FastAPI(title="Stealth Crawler API", version="2.3.0")
+app_version = "2.4.0"
 
 API_KEY = os.getenv("CRAWLER_API_KEY", "").strip() or None
 RATE_LIMIT_REQUESTS = int(os.getenv("CRAWLER_RATE_LIMIT_REQUESTS", "60"))
 RATE_LIMIT_WINDOW = int(os.getenv("CRAWLER_RATE_LIMIT_WINDOW", "60"))
 RATE_LIMIT_BACKEND = os.getenv("CRAWLER_RATE_LIMIT_BACKEND", "memory").strip().lower()
 RATE_LIMIT_REDIS_URL = os.getenv("CRAWLER_RATE_LIMIT_REDIS_URL", "").strip() or None
+MCP_BEARER_TOKEN = os.getenv("MCP_BEARER_TOKEN", "").strip() or None
+MCP_PUBLIC_PATHS = {
+    path.strip()
+    for path in os.getenv("MCP_PUBLIC_PATHS", "/mcp/healthz").split(",")
+    if path.strip()
+}
 
-app.add_middleware(
-    SecurityMiddleware,
-    api_key=API_KEY,
-    rate_limit_requests=RATE_LIMIT_REQUESTS,
-    rate_limit_window=RATE_LIMIT_WINDOW,
-    rate_limit_backend=RATE_LIMIT_BACKEND,
-    redis_url=RATE_LIMIT_REDIS_URL,
-)
+mcp = FastMCP("Stealth Crawler")
 
 
 class FetchRequest(BaseModel):
@@ -90,48 +90,108 @@ def _error_response(exc: Exception) -> JSONResponse:
     )
 
 
+def _fetch_result(url: str, options: CrawlOptions, headers: Optional[Dict[str, str]] = None):
+    config = _build_config(options)
+    with Crawler(config=config, proxies=options.proxies or None) as crawler:
+        return crawler.get(url, headers=headers or None)
+
+
+def _fetch_payload(url: str, options: CrawlOptions, headers: Optional[Dict[str, str]] = None):
+    result = _fetch_result(url, options, headers=headers)
+    return result.to_normalized_dict(include_text=True, include_parsed=False)
+
+
+def _parse_payload(url: str, options: CrawlOptions, headers: Optional[Dict[str, str]] = None):
+    result = _fetch_result(url, options, headers=headers)
+    return result.to_normalized_dict(include_text=True, include_parsed=True)
+
+
+def _analysis_payload(url: str, robots_mode: str, user_agent: str, timeout: int):
+    from .robots import RobotsChecker
+
+    checker = RobotsChecker(timeout=timeout)
+    allowed, reason, crawl_delay = checker.check(
+        url,
+        user_agent=user_agent,
+        mode=robots_mode,
+    )
+    return normalize_analysis_payload(
+        url,
+        allowed,
+        reason,
+        crawl_delay,
+        robots_mode,
+    )
+
+
+@mcp.tool
+async def health() -> Dict[str, str]:
+    return {"status": "ok", "service": "stealth-crawler"}
+
+
+@mcp.tool
+async def fetch(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, object]:
+    return _fetch_payload(url, options or CrawlOptions(), None)
+
+
+@mcp.tool
+async def parse(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, object]:
+    return _parse_payload(url, options or CrawlOptions(), None)
+
+
+@mcp.tool
+async def analyze(
+    url: str,
+    robots_mode: str = "strict",
+    user_agent: str = "*",
+    timeout: int = 10,
+) -> Dict[str, object]:
+    return _analysis_payload(url, robots_mode, user_agent, timeout)
+
+
+mcp_app = mcp.http_app(path="/mcp")
+
+app = FastAPI(title="Stealth Crawler API", version=app_version, lifespan=mcp_app.lifespan)
+
+app.add_middleware(
+    SecurityMiddleware,
+    api_key=API_KEY,
+    rate_limit_requests=RATE_LIMIT_REQUESTS,
+    rate_limit_window=RATE_LIMIT_WINDOW,
+    rate_limit_backend=RATE_LIMIT_BACKEND,
+    redis_url=RATE_LIMIT_REDIS_URL,
+    mcp_bearer_token=MCP_BEARER_TOKEN,
+    mcp_public_paths=MCP_PUBLIC_PATHS,
+)
+
+
 @app.get("/health")
-def health():
+def health_route():
     return {"status": "ok", "service": "stealth-crawler"}
 
 
 @app.post("/fetch")
-def fetch(req: FetchRequest):
-    config = _build_config(req.options)
+def fetch_route(req: FetchRequest):
     try:
-        with Crawler(config=config, proxies=req.options.proxies or None) as crawler:
-            result = crawler.get(req.url, headers=req.options.headers or None)
-        return result.to_normalized_dict(include_text=True, include_parsed=False)
+        return _fetch_payload(req.url, req.options, req.options.headers or None)
     except Exception as exc:
         return _error_response(exc)
 
 
 @app.post("/parse")
-def parse(req: ParseRequest):
-    config = _build_config(req.options)
+def parse_route(req: ParseRequest):
     try:
-        with Crawler(config=config, proxies=req.options.proxies or None) as crawler:
-            result = crawler.get(req.url, headers=req.options.headers or None)
-        return result.to_normalized_dict(include_text=True, include_parsed=True)
+        return _parse_payload(req.url, req.options, req.options.headers or None)
     except Exception as exc:
         return _error_response(exc)
 
 
 @app.post("/analyze")
-def analyze(req: AnalyzeRequest):
+def analyze_route(req: AnalyzeRequest):
     try:
-        checker = RobotsChecker(timeout=req.timeout)
-        allowed, reason, crawl_delay = checker.check(
-            req.url,
-            user_agent=req.user_agent,
-            mode=req.robots_mode,
-        )
-        return normalize_analysis_payload(
-            req.url,
-            allowed,
-            reason,
-            crawl_delay,
-            req.robots_mode,
-        )
+        return _analysis_payload(req.url, req.robots_mode, req.user_agent, req.timeout)
     except Exception as exc:
         return _error_response(exc)
+
+
+app.mount("/", mcp_app)

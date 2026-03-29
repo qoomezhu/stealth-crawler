@@ -6,7 +6,7 @@ services:
     ports:
       - "6379:6379"
 
-  api:
+  app:
     build: .
     image: stealth-crawler:latest
     command: uvicorn stealth_crawler.http_api:app --host 0.0.0.0 --port 8080
@@ -18,22 +18,7 @@ services:
       CRAWLER_RATE_LIMIT_REQUESTS: ${CRAWLER_RATE_LIMIT_REQUESTS:-60}
       CRAWLER_RATE_LIMIT_WINDOW: ${CRAWLER_RATE_LIMIT_WINDOW:-60}
       CRAWLER_RATE_LIMIT_REDIS_URL: ${CRAWLER_RATE_LIMIT_REDIS_URL:-redis://redis:6379/0}
+      MCP_BEARER_TOKEN: ${MCP_BEARER_TOKEN:-dev-mcp-token}
+      MCP_PUBLIC_PATHS: ${MCP_PUBLIC_PATHS:-/mcp/healthz}
     depends_on:
       - redis
-
-  mcp-bridge:
-    build: .
-    image: stealth-crawler:latest
-    command: python -m mcp_bridge.server
-    ports:
-      - "8001:8001"
-    environment:
-      CRAWLER_API_BASE_URL: http://api:8080
-      CRAWLER_API_KEY: ${CRAWLER_API_KEY:-dev-secret}
-      MCP_TRANSPORT: http
-      MCP_HOST: 0.0.0.0
-      MCP_PORT: 8001
-      MCP_BEARER_TOKEN: ${MCP_BEARER_TOKEN:-dev-mcp-token}
-      MCP_PUBLIC_PATHS: /healthz
-    depends_on:
-      - api
