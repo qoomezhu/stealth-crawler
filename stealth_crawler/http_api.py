@@ -129,6 +129,11 @@ async def health() -> Dict[str, str]:
     return {"status": "ok", "service": "stealth-crawler"}
 
 
+@mcp.custom_route("/healthz", methods=["GET"])
+async def mcp_healthz():
+    return {"status": "ok", "service": "stealth-crawler-mcp"}
+
+
 @mcp.tool
 async def fetch(url: str, options: Optional[CrawlOptions] = None) -> Dict[str, object]:
     return _fetch_payload(url, options or CrawlOptions(), None)
