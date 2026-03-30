@@ -10,6 +10,9 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -31,7 +34,7 @@ jobs:
         run: ruff check .
 
       - name: Format check with Black
-        run: black --check .
+        run: black --line-length 100 --check .
 
       - name: Run tests
         run: pytest -q
